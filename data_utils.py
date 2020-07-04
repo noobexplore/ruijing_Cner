@@ -5,11 +5,13 @@
 # @Site : 
 # @File : data_utils.py
 # @Software: PyCharm
+import math
 import numpy as np
 import pandas as pd
 import pickle
 from tqdm import tqdm
 import os
+import random
 
 
 def get_data_with_windows(name='train'):
@@ -54,8 +56,63 @@ def get_data_with_windows(name='train'):
             # 拼接三个
             three.append([first[k] + second[k] + third[k] for k in range(len(first))])
         results.extend(result + two + three)
-    return results
+    # 保存到文件
+    with open(f'datas/prepare_data/' + name + '.pkl', 'wb') as f:
+        pickle.dump(results, f)
+
+
+# batch管理对象
+class BatchManager(object):
+    def __init__(self, batch_size, name='train'):
+        # 这里就直接读取文件了
+        with open(f'datas/prepare_data/' + name + '.pkl', 'rb') as f:
+            data = pickle.load(f)
+        # 初始化排序和填充
+        self.batch_data = self.sort_pad(data, batch_size)
+        # 计算总的batch长度
+        self.len_data = len(self.batch_data)
+
+    def sort_pad(self, data, batch_size):
+        # 计算总共有多少个批次
+        num_batch = int(math.ceil(len(data) / batch_size))
+        # 安装句子长度排序
+        sorted_data = sorted(data, key=lambda x: len(x[0]))
+        batch_data = list()
+        # 获取batch
+        for i in range(num_batch):
+            batch_data.append(self.pad_data(sorted_data[i * int(batch_size): (i + 1) * int(batch_size)]))
+        return batch_data
+
+    @staticmethod
+    def pad_data(data):
+        chars = []
+        bounds = []
+        flags = []
+        radicals = []
+        pinyins = []
+        targets = []
+        max_length = max([len(sentence[0]) for sentence in data])
+        for line in data:
+            char, bound, flag, target, radical, pinyin = line
+            # 需要填充的个数
+            padding = [0] * (max_length - len(char))
+            chars.append(char + padding)
+            bounds.append(bound + padding)
+            flags.append(flag + padding)
+            targets.append(target + padding)
+            radicals.append(radical + padding)
+            pinyins.append(pinyin + padding)
+        return [chars, bounds, flags, targets, radicals, pinyins]
+
+    def iter_batch(self, shuffle=False):
+        if shuffle:
+            random.shuffle(self.batch_data)
+        for idx in range(self.len_data):
+            yield self.batch_data[idx]
 
 
 if __name__ == '__main__':
-    get_data_with_windows()
+    # get_data_with_windows('train')
+    # get_data_with_windows('test')
+    # 测试batch
+    train_data = BatchManager(10, name='train')

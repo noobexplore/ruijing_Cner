@@ -79,46 +79,37 @@ def split_text(text):
     pattern1 = r'。|，|,|;|；|\.|\?'
     for m in re.finditer(pattern1, text):
         idx = m.span()[0]
-        # 这里寻找不用断句的情况，标点前面为换行符的情况不切分
         if text[idx - 1] == '\n':
             continue
-        # 标点前后为数字的情况
-        if text[idx - 1].isdigit() and text[idx + 1].isdigit():
+        if text[idx - 1].isdigit() and text[idx + 1].isdigit():  # 前后是数字
             continue
-        # 一些小数中间有空格的情况
-        if text[idx - 1].isdigit() and text[idx + 1].isspace() and text[idx + 2].isdigit():
+        if text[idx - 1].isdigit() and text[idx + 1].isspace() and text[idx + 2].isdigit():  # 前数字 后空格 后后数字
             continue
-        # 两端都是小写字母
-        if text[idx - 1].islower() and text[idx + 1].islower():
+        if text[idx - 1].islower() and text[idx + 1].islower():  # 前小写字母后小写字母
             continue
-        # 前面是小写字母后面是标点
-        if text[idx - 1].isupper() and text[idx + 1].isdigit():
+        if text[idx - 1].islower() and text[idx + 1].isdigit():  # 前小写字母后数字
             continue
-        # 前面是数字后面是小写字母
-        if text[idx - 1].isdigit() and text[idx + 1].islower():
+        if text[idx - 1].isupper() and text[idx + 1].isdigit():  # 前大写字母后数字
             continue
-        # 前面是数字后面是大写字母
-        if text[idx - 1].isupper() and text[idx + 1].isdigit():
+        if text[idx - 1].isdigit() and text[idx + 1].islower():  # 前数字后小写字母
             continue
-        # 后面也是标点符号的情况
-        if text[idx + 1] in set('.。;；,，'):
+        if text[idx - 1].isdigit() and text[idx + 1].isupper():  # 前数字后大写字母
             continue
-        # 前面为HBA1C  。这样的情况
-        if text[idx - 1].isspace() and text[idx - 2].isspace() and text[idx - 3] == 'C':
+        if text[idx + 1] in set('.。;；,，'):  # 前句号后句号
+            continue
+        if text[idx - 1].isspace() and text[idx - 2].isspace() and text[idx - 3] == 'C':  # HBA1C的问题
             continue
         if text[idx - 1].isspace() and text[idx - 2] == 'C':
             continue
-        # 前面是大写后面也是大写
-        if text[idx - 1].isupper() and text[idx + 1].isupper():
+        if text[idx - 1].isupper() and text[idx + 1].isupper():  # 前大些后大写
             continue
-        if text[idx] == '.' and text[idx + 1:idx + 4] == 'com':
+        if text[idx] == '.' and text[idx + 1:idx + 4] == 'com':  # 域名
             continue
-        # 如果以上都不满足，那么就记录需要分割的下标
         split_idx.append(idx + 1)
     # 这里找到一些特殊的词
-    pattern2 = r'\([一二三四五六七八九零十]\)|[一二三四五六七八九零十]、|'
-    pattern2 += r'注:|附录 |表 \d|Tab \d+|\[摘要\]|\[提要\]|表\d[^。，,;]+?\n|图 \d|Fig \d'
-    pattern2 += r'\[Abstract\]|\[Summary\]|前  言|【摘要】|【关键词】|结    果|讨    论|'
+    pattern2 = '\([一二三四五六七八九零十]\)|[一二三四五六七八九零十]、|'
+    pattern2 += '注:|附录 |表 \d|Tab \d+|\[摘要\]|\[提要\]|表\d[^。，,;]+?\n|图 \d|Fig \d|'
+    pattern2 += '\[Abstract\]|\[Summary\]|前  言|【摘要】|【关键词】|结    果|讨    论|'
     pattern2 += 'and |or |with |by |because of |as well as '
     # 遍历所有的模式
     for m in re.finditer(pattern2, text):
@@ -128,26 +119,28 @@ def split_text(text):
             continue
         split_idx.append(idx)
     # 判断数字加.后面是否还有中文的这种情况
-    pattern3 = r'\n\d\.'
-    for m in re.finditer(pattern2, text):
+    pattern3 = '\n\d\.'
+    for m in re.finditer(pattern3, text):
         idx = m.span()[0]
         # 判断是否为中文字符
         if ischinese(text[idx + 3]):
             split_idx.append(idx + 1)
     # 带括号数字的
-    pattern4 = r'\n\(\d\)'
+    pattern4 = '\n\(\d\)'
     for m in re.finditer(pattern4, text):
         idx = m.span()[0]
         split_idx.append(idx + 1)
     # 对其索引排序
     split_idx = list(sorted(set([0, len(text)] + split_idx)))
+
     other_idx = []
     # 处理（一）xxx这种情况
     for i in range(len(split_idx) - 1):
         # 获取开始和结束符
         begin = split_idx[i]
         end = split_idx[i + 1]
-        if text[begin] in '一二三四五六七八九零十' or (text[begin] == '(' and text[begin + 1] in '一二三四五六七八九零十'):
+        if text[begin] in '一二三四五六七八九零十' or \
+                (text[begin] == '(' and text[begin + 1] in '一二三四五六七八九零十'):
             for j in range(begin, end):
                 if text[j] == '\n':
                     other_idx.append(j + 1)
@@ -177,7 +170,7 @@ def split_text(text):
     split_idx += other_idx
     # 又需要进行新的排序
     split_idx = list(sorted(set([0, len(text)] + split_idx)))
-    # 处理短句
+    # 干掉全是空格的句子
     for i in range(1, len(split_idx) - 1):
         idx = split_idx[i]
         # 处理空格，全部是空格的句子

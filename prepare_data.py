@@ -39,7 +39,7 @@ def process_text(idx, split_method=None, split_name='train'):
             texts = split_text(texts)
     data['word'] = texts
     # 获取标签，先全部打上O
-    tag_list = ['O' for s in texts for x in s]
+    tag_list = ['O' for s in texts for _ in s]
     # 读取对应的ann文件
     tag = pd.read_csv(f'./datas/{train_dir}/{idx}.ann', header=None, sep='\t')
     for i in range(tag.shape[0]):
@@ -54,7 +54,6 @@ def process_text(idx, split_method=None, split_name='train'):
             tag_list[j] = 'I-' + cls
     # 做检查长度是否相等
     assert len([x for s in texts for x in s]) == len(tag_list)
-
     # 提取词性和词边界特征
     word_bounds = ['M' for item in tag_list]  # 保存每个词的边界
     word_flags = []  # 保存词性
@@ -99,6 +98,7 @@ def process_text(idx, split_method=None, split_name='train'):
     # 存储数据
     num_samples = len(texts)
     num_col = len(data.keys())
+
     dataset = []
     # 获取形如('中', 'B', 'ns', 'O', '丨', 'zhōng'), ('国', 'E', 'ns', 'O', '囗', 'guó')
     for i in range(num_samples):
@@ -125,8 +125,6 @@ def process_text(idx, split_method=None, split_name='train'):
 
     dataset['word'] = dataset['word'].apply(clean_word)
     dataset.to_csv(save_path, index=False, encoding='utf-8')
-
-    return dataset
 
 
 # 多进程处理
@@ -200,12 +198,7 @@ def mapping(data, threshold=10, is_word=False, sep='sep', is_label=False):
 def get_dict():
     # 存储字典
     map_dict = {}
-    all_w = []  # 所有的词
-    all_bound = []  # 所有的边界
-    all_flag = []  # 所有的词性
-    all_label = []  # 所有标签
-    all_radical = []  # 所有偏旁部首
-    all_pinyin = []  # 所有拼音
+    all_w, all_bound, all_flag, all_label, all_radical, all_pinyin = [], [], [], [], [], []
     # 遍历所有的文件
     for file in glob('./datas/prepare_data/train/*.csv') + glob('./datas/prepare_data/test/*.csv'):
         # 拿到对应的csv文件
@@ -218,7 +211,7 @@ def get_dict():
         all_radical += df['radical'].tolist()
         all_pinyin += df['pinyin'].tolist()
     # 先映射词
-    map_dict['word'] = mapping(all_w, threshold=20, is_word=True)
+    map_dict['word'] = mapping(all_w, threshold=10, is_word=True)
     map_dict['bound'] = mapping(all_bound)
     map_dict['flag'] = mapping(all_flag)
     map_dict['label'] = mapping(all_label, is_label=True)
@@ -229,4 +222,5 @@ def get_dict():
 
 
 if __name__ == '__main__':
+    multi_process(split_text)
     get_dict()
