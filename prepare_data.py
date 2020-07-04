@@ -6,9 +6,7 @@
 # @File    : prepare_data.py
 # @Software: PyCharm
 import os
-import tqdm
 import shutil
-import pickle
 import pandas as pd
 import pickle
 from collections import Counter
@@ -167,7 +165,7 @@ def multi_process(split_method=None, train_ratio=0.8):
     pool.join()
 
 
-def mapping(data, threshold=10, is_word=False, sep='sep'):
+def mapping(data, threshold=10, is_word=False, sep='sep', is_label=False):
     count = Counter(data)
     if sep is not None:
         count.pop(sep)
@@ -178,6 +176,12 @@ def mapping(data, threshold=10, is_word=False, sep='sep'):
         data = sorted(count.items(), key=lambda x: x[1], reverse=True)
         # 去掉频率小于threshold的值
         data = [x[0] for x in data if x[1] >= threshold]
+        # 转化为映射
+        id2item = data
+        item2id = {id2item[i]: i for i in range(len(id2item))}
+    elif is_label:
+        data = sorted(count.items(), key=lambda x: x[1], reverse=True)
+        data = [x[0] for x in data]
         # 转化为映射
         id2item = data
         item2id = {id2item[i]: i for i in range(len(id2item))}
@@ -217,7 +221,7 @@ def get_dict():
     map_dict['word'] = mapping(all_w, threshold=20, is_word=True)
     map_dict['bound'] = mapping(all_bound)
     map_dict['flag'] = mapping(all_flag)
-    map_dict['label'] = mapping(all_label)
+    map_dict['label'] = mapping(all_label, is_label=True)
     map_dict['radical'] = mapping(all_radical)
     map_dict['pinyin'] = mapping(all_pinyin)
     with open(f'datas/prepare_data/dict.pkl', 'wb') as f:
