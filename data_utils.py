@@ -26,6 +26,7 @@ def get_data_with_windows(name='train'):
     files = list(os.listdir(root))
     for file in tqdm(files):
         result = []
+        no_last_result = []
         path = os.path.join(root, file)
         samples = pd.read_csv(path, sep=',')
         num_samples = len(samples)
@@ -40,6 +41,9 @@ def get_data_with_windows(name='train'):
             for feature in samples.columns:
                 id_data.append(item2id(list(samples[feature])[start:end], map_dict[feature][1]))
             result.append(id_data)
+        # 去掉换行符
+        if len(result[-1][0]) == 1:
+            result = result[:-1]
         # 拼接长短句，数据增强
         two = []
         for i in range(len(result) - 1):
@@ -55,7 +59,7 @@ def get_data_with_windows(name='train'):
             third = result[i + 2]
             # 拼接三个
             three.append([first[k] + second[k] + third[k] for k in range(len(first))])
-        results.extend(result + two + three)
+        results.extend(no_last_result + two + three)
     # 保存到文件
     with open(f'datas/prepare_data/' + name + '.pkl', 'wb') as f:
         pickle.dump(results, f)
@@ -85,12 +89,7 @@ class BatchManager(object):
 
     @staticmethod
     def pad_data(data):
-        chars = []
-        bounds = []
-        flags = []
-        radicals = []
-        pinyins = []
-        targets = []
+        chars, bounds, flags, radicals, pinyins, targets = [], [], [], [], [], []
         max_length = max([len(sentence[0]) for sentence in data])
         for line in data:
             char, bound, flag, target, radical, pinyin = line
@@ -112,7 +111,7 @@ class BatchManager(object):
 
 
 if __name__ == '__main__':
-    # get_data_with_windows('train')
-    # get_data_with_windows('test')
+    get_data_with_windows('train')
+    get_data_with_windows('test')
     # 测试batch
-    train_data = BatchManager(10, name='train')
+    # train_data = BatchManager(10, name='train')
