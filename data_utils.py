@@ -26,7 +26,6 @@ def get_data_with_windows(name='train'):
     files = list(os.listdir(root))
     for file in tqdm(files):
         result = []
-        no_last_result = []
         path = os.path.join(root, file)
         samples = pd.read_csv(path, sep=',')
         num_samples = len(samples)
@@ -59,7 +58,7 @@ def get_data_with_windows(name='train'):
             third = result[i + 2]
             # 拼接三个
             three.append([first[k] + second[k] + third[k] for k in range(len(first))])
-        results.extend(no_last_result + two + three)
+        results.extend(result + two + three)
     # 保存到文件
     with open(f'datas/prepare_data/' + name + '.pkl', 'wb') as f:
         pickle.dump(results, f)
