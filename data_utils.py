@@ -6,12 +6,17 @@
 # @File : data_utils.py
 # @Software: PyCharm
 import math
-import numpy as np
 import pandas as pd
 import pickle
 from tqdm import tqdm
 import os
 import random
+
+
+def get_dict(path):
+    with open(path, 'rb') as f:
+        dict = pickle.load(f)
+    return dict
 
 
 def get_data_with_windows(name='train'):
