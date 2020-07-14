@@ -5,14 +5,17 @@
 # @Site    : 
 # @File    : model.py
 # @Software: PyCharm
+import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import rnn
-from tensorflow.contrib.crf import crf_log_likelihood
+from tensorflow.contrib.crf import crf_log_likelihood, viterbi_decode
 
 
 def network(inputs, shapes, num_tags, lstm_dim=100, initializer=tf.truncated_normal_initializer()):
     """
     接受一个批次样本的特征数据，计算出网络的输出值
+    :param num_tags:标签数量
+    :param lstm_dim: LSTM维度
     :param inputs: id of chars a tensor of shape 2-D [None, None] with type of int
     :param initializer:truncated_normal_initializer
     :param shapes:dim
@@ -122,6 +125,7 @@ class Model(object):
         self.pinyin_dim = 50
         self.lstm_dim = 100
         self.lr = lr
+        self.map = dict_all
         # 定义接受数据的placeholer
         self.char_inputs = tf.placeholder(dtype=tf.int32, shape=[None, None], name='char_inputs')
         self.bound_inputs = tf.placeholder(dtype=tf.int32, shape=[None, None], name='bound_inputs')
@@ -194,7 +198,7 @@ class Model(object):
                 shape=[self.num_tags + 1, self.num_tags + 1],
                 initializer=tf.truncated_normal_initializer()
             )
-            # 计算LOSS
+            # 计算LOSS，在传统的CRF中的logits是根据统计学去统计出来的分值
             log_likehood, self.trans = crf_log_likelihood(
                 inputs=logits,
                 tag_indices=targets,
@@ -202,3 +206,62 @@ class Model(object):
                 sequence_lengths=lengths
             )
             return tf.reduce_mean(-log_likehood)
+
+    def run_step(self, sess, batch, is_train=True):
+        if is_train:
+            feed_dict = {
+                self.char_inputs: batch[0],
+                self.bound_inputs: batch[1],
+                self.flag_inputs: batch[2],
+                self.targets: batch[3],
+                self.radical_inputs: batch[4],
+                self.pinyin_inputs: batch[5]
+            }
+            _, loss = sess.run([self.train_op, self.cost], feed_dict=feed_dict)
+            return loss
+        else:
+            # 就不需要targets了
+            feed_dict = {
+                self.char_inputs: batch[0],
+                self.bound_inputs: batch[1],
+                self.flag_inputs: batch[2],
+                self.radical_inputs: batch[4],
+                self.pinyin_inputs: batch[5]
+            }
+        logits, lengths = sess.run([self.logits, self.lengths], feed_dict=feed_dict)
+        return logits, lengths
+
+    def decode(self, logtis, lengths, matrix):
+        paths = []
+        small = -1000
+        start = np.asarray([[small * self.num_tags] + [0]])
+        for score, length in zip(logtis, lengths):
+            # 只取有效长度
+            score = score[:length]
+            pad = small * np.ones([length, 1])
+            logtis = np.concatenate([score, pad], axis=-1)
+            logtis = np.concatenate([start, logtis], axis=0)
+            path, _ = viterbi_decode(logtis, matrix)
+            # 去掉start
+            paths.append(path[1:])
+        return paths
+
+    def predict(self, sess, batch):
+        results = []
+        chars = batch[0]
+        # 先拿到转移矩阵
+        matrix = self.trans.eval()
+        logtis, lengths = self.run_step(sess, batch, is_train=False)
+        # 获取预测的ID
+        paths = self.decode(logtis, lengths, matrix)
+        for i in range(len(paths)):
+            length = lengths[i]
+            # 第i句话的真实数据
+            string = [self.map['word'][0][index] for index in chars[i][:length]]
+            tags = [self.map['label'][0][index] for index in paths[i]]
+            result = [k for k in zip(string, tags)]
+            results.append(result)
+        return results
+
+
+
