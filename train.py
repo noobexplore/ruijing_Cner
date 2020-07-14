@@ -16,14 +16,13 @@ warnings.filterwarnings("ignore")
 old_v = tf.logging.get_verbosity()
 tf.logging.set_verbosity(tf.logging.ERROR)
 
-batch_size = 20
+batch_size = 32
 dict_file = './datas/prepare_data/dict.pkl'
 
 
-def train():
+def train(param):
     # 数据准备
     train_manager = BatchManager(batch_size, name='train')
-    test_manager = BatchManager(batch_size=100, name='test')
     # 读取字典
     mapping_dict = get_dict(dict_file)
     # 搭建模型
@@ -43,8 +42,6 @@ def train():
                           format(i, j, train_manager.len_data, loss, end - start,
                                  (end - start) * (train_manager.len_data - j)))
                 j += 1
-            for batch in test_manager.iter_batch(shuffle=True):
-                print(model.predict(sess, batch))
 
 
 if __name__ == '__main__':

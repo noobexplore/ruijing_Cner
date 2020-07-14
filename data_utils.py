@@ -5,12 +5,13 @@
 # @Site : 
 # @File : data_utils.py
 # @Software: PyCharm
-import math
-import pandas as pd
-import pickle
-from tqdm import tqdm
 import os
 import random
+import math
+import pickle
+import logging
+from tqdm import tqdm
+import pandas as pd
 
 
 def get_dict(path):
@@ -64,9 +65,19 @@ def get_data_with_windows(name='train'):
             # 拼接三个
             three.append([first[k] + second[k] + third[k] for k in range(len(first))])
         results.extend(result + two + three)
-    # 保存到文件
-    with open(f'datas/prepare_data/' + name + '.pkl', 'wb') as f:
-        pickle.dump(results, f)
+    # 保存到文件, 这里将训练集分为train和dev
+    if name == 'train':
+        split_ratio = [0.8, 0.2]
+        total = len(results)
+        p1 = int(total * split_ratio[0])
+        p2 = int(total * (split_ratio[0] + split_ratio[1]))
+        with open(f'datas/prepare_data/train.pkl', 'wb') as f:
+            pickle.dump(results[:p1], f)
+        with open(f'datas/prepare_data/dev.pkl', 'wb') as f:
+            pickle.dump(results[p1:p2], f)
+    else:
+        with open(f'datas/prepare_data/test.pkl', 'wb') as f:
+            pickle.dump(results, f)
 
 
 # batch管理对象
@@ -105,13 +116,42 @@ class BatchManager(object):
             targets.append(target + padding)
             radicals.append(radical + padding)
             pinyins.append(pinyin + padding)
-        return [chars, bounds, flags, targets, radicals, pinyins]
+        return [chars, bounds, flags, radicals, pinyins, targets]
 
     def iter_batch(self, shuffle=False):
         if shuffle:
             random.shuffle(self.batch_data)
         for idx in range(self.len_data):
             yield self.batch_data[idx]
+
+
+# 获取日志文件
+def get_logger(log_file):
+    logger = logging.getLogger(log_file)
+    logger.setLevel(logging.DEBUG)
+    fh = logging.FileHandler(log_file)
+    fh.setLevel(logging.DEBUG)
+    ch = logging.StreamHandler()
+    ch.setLevel(logging.INFO)
+    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    ch.setFormatter(formatter)
+    fh.setFormatter(formatter)
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    return logger
+
+
+# 创建对应的文件夹
+def make_path(params):
+    # 预测结果集文件夹
+    if not os.path.isdir(params.result_path):
+        os.makedirs(params.result_path)
+    # 模型保存文件夹
+    if not os.path.isdir(params.ckpt_path):
+        os.makedirs(params.ckpt_path)
+    # 日志文件
+    if not os.path.isdir("./log"):
+        os.makedirs("./log")
 
 
 if __name__ == '__main__':

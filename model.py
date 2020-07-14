@@ -5,15 +5,18 @@
 # @Site    : 
 # @File    : model.py
 # @Software: PyCharm
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.contrib import rnn
 from tensorflow.contrib.crf import crf_log_likelihood, viterbi_decode
+from tensorflow.contrib.layers.python.layers import initializers
 
 
-def network(inputs, shapes, num_tags, lstm_dim=100, initializer=tf.truncated_normal_initializer()):
+def network(inputs, shapes, num_tags, lstm_dim=100, dropout_prob=0.5, initializer=initializers.xavier_initializer()):
     """
     接受一个批次样本的特征数据，计算出网络的输出值
+    :param dropout_prob:dropout系数
     :param num_tags:标签数量
     :param lstm_dim: LSTM维度
     :param inputs: id of chars a tensor of shape 2-D [None, None] with type of int
@@ -25,6 +28,7 @@ def network(inputs, shapes, num_tags, lstm_dim=100, initializer=tf.truncated_nor
     embedding = []
     # 增加函数通用性
     keys = list(shapes.keys())
+    # 循环初始化去构建计算图
     for key in keys:
         with tf.variable_scope(key + '_embedding'):
             lookup = tf.get_variable(
@@ -36,6 +40,8 @@ def network(inputs, shapes, num_tags, lstm_dim=100, initializer=tf.truncated_nor
             embedding.append(tf.nn.embedding_lookup(lookup, inputs[key]))
     # 在最后一个维度上拼接shape [None, None, char_dim+...+pinyin_dim]
     embed = tf.concat(embedding, axis=-1)  # axis=-1为最后一个维度
+    # 是否加入Dropout层
+    model_inputs = tf.nn.dropout(embed, dropout_prob)
     # 直接算出实际长度, sign就是正数为1负数为-1
     sign = tf.sign(tf.abs(inputs[keys[0]]))
     # 求出每个句子的真实长度
@@ -47,62 +53,42 @@ def network(inputs, shapes, num_tags, lstm_dim=100, initializer=tf.truncated_nor
         lstm_cell = {}
         for name in ['forward', 'backward']:
             # 实例化
-            lstm_cell[name] = rnn.BasicLSTMCell(
-                num_units=lstm_dim
-            )
+            lstm_cell[name] = rnn.BasicLSTMCell(num_units=lstm_dim)
         # 将示例化的东西跑一下
-        output1, final_states = tf.nn.bidirectional_dynamic_rnn(
+        output_first, final_states = tf.nn.bidirectional_dynamic_rnn(
             lstm_cell['forward'],
             lstm_cell['backward'],
-            embed,
+            model_inputs,
             dtype=tf.float32,
             sequence_length=lengths
         )
     # 这里需要将前后向进行拼接，在最后一个维度进行拼接 b,L,2*lstm_dim
-    output1 = tf.concat(output1, axis=-1)
+    output_first = tf.concat(output_first, axis=-1)
     # 第二层
     with tf.variable_scope('BiLSTM_layer2'):
         lstm_cell = {}
         for name in ['forward', 'backward']:
             # 实例化
-            lstm_cell[name] = rnn.BasicLSTMCell(
-                num_units=lstm_dim
-            )
+            lstm_cell[name] = rnn.BasicLSTMCell(num_units=lstm_dim)
         # 将示例化的东西跑一下
-        output2, final_states = tf.nn.bidirectional_dynamic_rnn(
+        output_second, final_states = tf.nn.bidirectional_dynamic_rnn(
             lstm_cell['forward'],
             lstm_cell['backward'],
-            output1,
+            output_first,
             dtype=tf.float32,
             sequence_length=lengths
         )
-    output = tf.concat(output2, axis=-1)
+    output = tf.concat(output_second, axis=-1)
     # 输出映射，合并为二维矩阵
     output = tf.reshape(output, [-1, 2 * lstm_dim])  # reshape成二维矩阵 [batch*maxlength, 2*lstmdim]
     with tf.variable_scope('project_layer1'):
-        w = tf.get_variable(
-            name='w',
-            shape=[2 * lstm_dim, lstm_dim],
-            initializer=initializer
-        )
-        b = tf.get_variable(
-            name='b',
-            shape=[lstm_dim],
-            initializer=tf.zeros_initializer
-        )
-        # 映射
+        w = tf.get_variable(name='w', shape=[2 * lstm_dim, lstm_dim], initializer=initializer)
+        b = tf.get_variable(name='b', shape=[lstm_dim], initializer=tf.zeros_initializer)
+        # 映射层，第一层激活
         output = tf.nn.relu(tf.matmul(output, w) + b)
     with tf.variable_scope('project_layer2'):
-        w = tf.get_variable(
-            name='w',
-            shape=[lstm_dim, num_tags],
-            initializer=initializer
-        )
-        b = tf.get_variable(
-            name='b',
-            shape=[num_tags],
-            initializer=tf.zeros_initializer
-        )
+        w = tf.get_variable(name='w', shape=[lstm_dim, num_tags], initializer=initializer)
+        b = tf.get_variable(name='b', shape=[num_tags], initializer=tf.zeros_initializer)
         # 映射最后一层不激活
         output = tf.matmul(output, w) + b
     output = tf.reshape(output, [-1, num_time, num_tags])
@@ -124,8 +110,15 @@ class Model(object):
         self.radical_dim = 50
         self.pinyin_dim = 50
         self.lstm_dim = 100
+        # 学习率
         self.lr = lr
+        # 映射字典
         self.map = dict_all
+        # 不需要训练用来计数
+        self.global_step = tf.Variable(0, trainable=False)
+        # 加入评估参数
+        self.best_dev_f1 = tf.Variable(0.0, trainable=False)
+        self.best_test_f1 = tf.Variable(0.0, trainable=False)
         # 定义接受数据的placeholer
         self.char_inputs = tf.placeholder(dtype=tf.int32, shape=[None, None], name='char_inputs')
         self.bound_inputs = tf.placeholder(dtype=tf.int32, shape=[None, None], name='bound_inputs')
@@ -133,9 +126,7 @@ class Model(object):
         self.radical_inputs = tf.placeholder(dtype=tf.int32, shape=[None, None], name='radical_inputs')
         self.pinyin_inputs = tf.placeholder(dtype=tf.int32, shape=[None, None], name='pinyin_inputs')
         self.targets = tf.placeholder(dtype=tf.int32, shape=[None, None], name='targets')
-        # 不需要训练用来计数
-        self.global_step = tf.Variable(0, trainable=False)
-        # 计算模型输出值
+        # 计算模型输出值，其中包括构建的计算图
         self.logits, self.lengths = self.get_logits(
             self.char_inputs,
             self.bound_inputs,
@@ -213,9 +204,9 @@ class Model(object):
                 self.char_inputs: batch[0],
                 self.bound_inputs: batch[1],
                 self.flag_inputs: batch[2],
-                self.targets: batch[3],
-                self.radical_inputs: batch[4],
-                self.pinyin_inputs: batch[5]
+                self.radical_inputs: batch[3],
+                self.pinyin_inputs: batch[4],
+                self.targets: batch[5]
             }
             _, loss = sess.run([self.train_op, self.cost], feed_dict=feed_dict)
             return loss
@@ -225,8 +216,8 @@ class Model(object):
                 self.char_inputs: batch[0],
                 self.bound_inputs: batch[1],
                 self.flag_inputs: batch[2],
-                self.radical_inputs: batch[4],
-                self.pinyin_inputs: batch[5]
+                self.radical_inputs: batch[3],
+                self.pinyin_inputs: batch[4]
             }
         logits, lengths = sess.run([self.logits, self.lengths], feed_dict=feed_dict)
         return logits, lengths
@@ -234,34 +225,52 @@ class Model(object):
     def decode(self, logtis, lengths, matrix):
         paths = []
         small = -1000
-        start = np.asarray([[small * self.num_tags] + [0]])
+        start = np.asarray([[small] * self.num_tags + [0]])
         for score, length in zip(logtis, lengths):
             # 只取有效长度
             score = score[:length]
             pad = small * np.ones([length, 1])
-            logtis = np.concatenate([score, pad], axis=-1)
+            logtis = np.concatenate([score, pad], axis=1)
             logtis = np.concatenate([start, logtis], axis=0)
             path, _ = viterbi_decode(logtis, matrix)
             # 去掉start
             paths.append(path[1:])
         return paths
 
-    def predict(self, sess, batch):
+    # 批量评估数据
+    def evaluate(self, sess, batch_manager):
         results = []
-        chars = batch[0]
-        # 先拿到转移矩阵
+        # 拿到转移矩阵
         matrix = self.trans.eval()
-        logtis, lengths = self.run_step(sess, batch, is_train=False)
-        # 获取预测的ID
-        paths = self.decode(logtis, lengths, matrix)
-        for i in range(len(paths)):
-            length = lengths[i]
-            # 第i句话的真实数据
-            string = [self.map['word'][0][index] for index in chars[i][:length]]
-            tags = [self.map['label'][0][index] for index in paths[i]]
-            result = [k for k in zip(string, tags)]
-            results.append(result)
+        for batch in batch_manager.iter_batch():
+            # 先拿到全部的句子
+            strings = batch[0]
+            # 再拿到全部标签
+            targets = batch[-1]
+            # 获取得分和真实长度
+            logtis, lengths = self.run_step(sess, batch, is_train=False)
+            # 获取预测的ID
+            paths = self.decode(logtis, lengths, matrix)
+            # 组装为[词，标签，预测标签]
+            for i in range(len(strings)):
+                result = []
+                # 第i个批次的长度
+                length = lengths[i]
+                # 获取真实长度字符
+                string = strings[i][:lengths[i]]
+                # 第i句话的真实数据
+                gold = [self.map['label'][0][index] for index in paths[i]]
+                pred = [self.map['word'][0][index] for index in strings[i][:length]]
+                # 循环去加入
+                for char, gold, pred in zip(string, gold, pred):
+                    result.append(" ".join([char, gold, pred]))
+                results.append(result)
         return results
+
+    def save_model(self, sess, path, logger):
+        checkpoint_path = os.path.join(path, "ner.ckpt")
+        self.saver.save(sess, checkpoint_path)
+        logger.info("model saved to path is {}".format(checkpoint_path))
 
 
 

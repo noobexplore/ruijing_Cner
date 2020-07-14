@@ -211,7 +211,7 @@ def get_dict():
         all_radical += df['radical'].tolist()
         all_pinyin += df['pinyin'].tolist()
     # 先映射词
-    map_dict['word'] = mapping(all_w, threshold=10, is_word=True)
+    map_dict['word'] = mapping(all_w, threshold=5, is_word=True)
     map_dict['bound'] = mapping(all_bound)
     map_dict['flag'] = mapping(all_flag)
     map_dict['label'] = mapping(all_label, is_label=True)
