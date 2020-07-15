@@ -38,6 +38,8 @@ def train(param):
     model = Model(param, mapping_dict)
     # 初始化参数
     init = tf.global_variables_initializer()
+    # 获取总的训练集数据数量
+    steps_per_epoch = train_manager.len_data
     # 配置GPU参数
     gpu_config = tf.ConfigProto(log_device_placement=True, allow_soft_placement=True)
     with tf.Session(config=gpu_config) as sess:
@@ -54,13 +56,17 @@ def train(param):
                 # 这里计算总的loss后面计算全部平均
                 total_loss += batch_loss
                 if step % 5 == 0:
-                    logger.info("epoch:{}, step:{}/{}, avg_loss:{:>9.6f}".format(i + 1, step, train_manager.len_data,
+                    logger.info("epoch:{}, step:{}/{}, avg_loss:{:>9.6f}".format(i + 1,
+                                                                                 step % steps_per_epoch,
+                                                                                 steps_per_epoch,
                                                                                  np.mean(loss)))
-            # 每两个周期保存一次
-            if (i + 1) % 2 == 0:
-                model.save_model(sess, logger)
+            # 保存模型
+            model.save_model(sess, logger, i)
             logger.info('Epoch {}, total Loss {:.4f}'.format(i + 1, total_loss / train_manager.len_data))
-            logger.info('Time taken for one epoch {:.4f} sec\n'.format(time.time() - start))
+            logger.info('Time taken for one epoch {:.4f} min, take {} h for rest of epoch\n'.format(
+                (time.time() - start) / 60,
+                ((param.max_epoch - i + 1) * (time.time() - start)) / 3600
+            ))
 
 
 if __name__ == '__main__':

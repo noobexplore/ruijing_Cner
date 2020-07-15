@@ -44,6 +44,7 @@ def get_params():
     flags.DEFINE_float("clip", 5, "gradient clip")
     flags.DEFINE_float("dropout", 0.5, "dropout rate")
     flags.DEFINE_integer("batch_size", 32, "batch size")
+    flags.DEFINE_integer("test_batch_size", 100, "test batch size")
     flags.DEFINE_float("lr", 1e-3, "initial learning rate")
     flags.DEFINE_integer("lstm_dim", 100, "num of hidden units in LSTM")
     # 是否使用预训练模型

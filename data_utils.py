@@ -12,6 +12,7 @@ import pickle
 import logging
 from tqdm import tqdm
 import pandas as pd
+from conlleval import return_report
 
 
 def get_dict(path):
@@ -152,6 +153,21 @@ def make_path(param):
     # 日志文件
     if not os.path.isdir(param.log_dir):
         os.makedirs(param.log_dir)
+
+
+# 测试结果写入文件
+def test_ner(results, path):
+    output_file = os.path.join(path, "ner_predict.utf8")
+    with open(output_file, "w", encoding='utf8') as f:
+        to_write = []
+        for block in results:
+            for line in block:
+                to_write.append(line + "\n")
+            to_write.append("\n")
+        f.writelines(to_write)
+    # 返回评估报告
+    eval_lines = return_report(output_file)
+    return eval_lines
 
 
 if __name__ == '__main__':

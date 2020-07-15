@@ -270,7 +270,7 @@ class Model(object):
         return results
 
     def save_model(self, sess, logger, step):
-        checkpoint_path = self.param.ckptpath
-        ckpt_file = os.path.join(checkpoint_path, "ckpt_" + step + ".ckpt")
+        checkpoint_path = self.param.ckpt_path
+        ckpt_file = os.path.join(checkpoint_path, "ckpt_" + str(step) + ".ckpt")
         self.saver.save(sess, ckpt_file)
         logger.info("model saved to path is {}".format(ckpt_file))
