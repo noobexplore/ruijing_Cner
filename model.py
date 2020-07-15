@@ -13,7 +13,7 @@ from tensorflow.contrib.crf import crf_log_likelihood, viterbi_decode
 from tensorflow.contrib.layers.python.layers import initializers
 
 
-def network(inputs, shapes, num_tags, lstm_dim=100, dropout_prob=0.5, initializer=initializers.xavier_initializer()):
+def network(inputs, shapes, num_tags, lstm_dim, dropout_prob, initializer=initializers.xavier_initializer()):
     """
     接受一个批次样本的特征数据，计算出网络的输出值
     :param dropout_prob:dropout系数
@@ -96,24 +96,26 @@ def network(inputs, shapes, num_tags, lstm_dim=100, dropout_prob=0.5, initialize
 
 
 class Model(object):
-    def __init__(self, dict_all, lr=0.0001):
+    def __init__(self, param, map_all):
+        # 初始化参数
+        self.param = param
         # 用到的参数值
-        self.num_char = len(dict_all['word'][0])
-        self.num_bound = len(dict_all['bound'][0])
-        self.num_flag = len(dict_all['flag'][0])
-        self.num_radical = len(dict_all['radical'][0])
-        self.num_pinyin = len(dict_all['pinyin'][0])
-        self.num_tags = len(dict_all['label'][0])
-        self.char_dim = 100
-        self.bound_dim = 20
-        self.flag_dim = 50
-        self.radical_dim = 50
-        self.pinyin_dim = 50
-        self.lstm_dim = 100
+        self.num_char = len(map_all['word'][0])
+        self.num_bound = len(map_all['bound'][0])
+        self.num_flag = len(map_all['flag'][0])
+        self.num_radical = len(map_all['radical'][0])
+        self.num_pinyin = len(map_all['pinyin'][0])
+        self.num_tags = len(map_all['label'][0])
+        self.char_dim = param.char_dim
+        self.bound_dim = param.bound_dim
+        self.flag_dim = param.flag_dim
+        self.radical_dim = param.radical_dim
+        self.pinyin_dim = param.pinyin_dim
+        self.lstm_dim = param.lstm_dim
         # 学习率
-        self.lr = lr
+        self.lr = param.lr
         # 映射字典
-        self.map = dict_all
+        self.map = map_all
         # 不需要训练用来计数
         self.global_step = tf.Variable(0, trainable=False)
         # 加入评估参数
@@ -142,7 +144,7 @@ class Model(object):
             # 计算出所有参数的导数
             grad_vars = opt.compute_gradients(self.cost)
             # 得到截断后的梯度
-            clip_grad_vars = [[tf.clip_by_value(g, -5, 5), v] for g, v in grad_vars]
+            clip_grad_vars = [[tf.clip_by_value(g, -param.clip, param.clip), v] for g, v in grad_vars]
             # 使用截断后的梯度，对参数进行更新
             self.train_op = opt.apply_gradients(clip_grad_vars, self.global_step)
         # 只保留最近5次
@@ -162,7 +164,7 @@ class Model(object):
                   'flag': [self.num_flag, self.flag_dim], 'radical': [self.num_radical, self.radical_dim],
                   'pinyin': [self.num_pinyin, self.pinyin_dim]}
         inputs = {'char': char, 'bound': bound, 'flag': flag, 'radical': radical, 'pinyin': pinyin}
-        return network(inputs, shapes, lstm_dim=self.lstm_dim, num_tags=self.num_tags)
+        return network(inputs, shapes, lstm_dim=self.lstm_dim, num_tags=self.num_tags, dropout_prob=self.param.dropout)
 
     def get_loss(self, output, targets, lengths):
         b = tf.shape(lengths)[0]
@@ -208,8 +210,8 @@ class Model(object):
                 self.pinyin_inputs: batch[4],
                 self.targets: batch[5]
             }
-            _, loss = sess.run([self.train_op, self.cost], feed_dict=feed_dict)
-            return loss
+            step, _, loss = sess.run([self.global_step, self.train_op, self.cost], feed_dict=feed_dict)
+            return step, loss
         else:
             # 就不需要targets了
             feed_dict = {
@@ -267,10 +269,8 @@ class Model(object):
                 results.append(result)
         return results
 
-    def save_model(self, sess, path, logger):
-        checkpoint_path = os.path.join(path, "ner.ckpt")
-        self.saver.save(sess, checkpoint_path)
-        logger.info("model saved to path is {}".format(checkpoint_path))
-
-
-
+    def save_model(self, sess, logger, step):
+        checkpoint_path = self.param.ckptpath
+        ckpt_file = os.path.join(checkpoint_path, "ckpt_" + step + ".ckpt")
+        self.saver.save(sess, ckpt_file)
+        logger.info("model saved to path is {}".format(ckpt_file))

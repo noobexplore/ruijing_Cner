@@ -142,20 +142,18 @@ def get_logger(log_file):
 
 
 # 创建对应的文件夹
-def make_path(params):
+def make_path(param):
     # 预测结果集文件夹
-    if not os.path.isdir(params.result_path):
-        os.makedirs(params.result_path)
+    if not os.path.isdir(param.result_path):
+        os.makedirs(param.result_path)
     # 模型保存文件夹
-    if not os.path.isdir(params.ckpt_path):
-        os.makedirs(params.ckpt_path)
+    if not os.path.isdir(param.ckpt_path):
+        os.makedirs(param.ckpt_path)
     # 日志文件
-    if not os.path.isdir("./log"):
-        os.makedirs("./log")
+    if not os.path.isdir(param.log_dir):
+        os.makedirs(param.log_dir)
 
 
 if __name__ == '__main__':
     get_data_with_windows('train')
     get_data_with_windows('test')
-    # 测试batch
-    # train_data = BatchManager(10, name='train')
