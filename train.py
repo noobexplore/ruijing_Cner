@@ -63,7 +63,7 @@ def train(param):
             # 保存模型
             model.save_model(sess, logger, i)
             logger.info('Epoch {}, total Loss {:.4f}'.format(i + 1, total_loss / train_manager.len_data))
-            logger.info('Time taken for one epoch {:.4f} min, take {} h for rest of epoch\n'.format(
+            logger.info('Time taken for one epoch {:.4f} min, take {:.2f} h for rest of epoch\n'.format(
                 (time.time() - start) / 60,
                 ((param.max_epoch - i + 1) * (time.time() - start)) / 3600
             ))
