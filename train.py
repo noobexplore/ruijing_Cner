@@ -5,7 +5,6 @@
 # @Site    : 
 # @File    : train.py
 # @Software: PyCharm
-import os
 import time
 import numpy as np
 import tensorflow as tf
@@ -16,7 +15,6 @@ from data_utils import BatchManager, get_dict, make_path, get_logger, get_sent_t
     load_word2vec
 import warnings
 
-os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 warnings.filterwarnings("ignore")
 
 old_v = tf.logging.get_verbosity()

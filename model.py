@@ -150,7 +150,7 @@ class Model(object):
             # 使用截断后的梯度，对参数进行更新
             self.train_op = opt.apply_gradients(clip_grad_vars, self.global_step)
         # 只保留最近5次
-        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=5)
+        self.saver = tf.train.Saver(tf.global_variables(), max_to_keep=param.steps_check)
 
     def get_logits(self, char, bound, flag, radical, pinyin):
         """
