@@ -51,15 +51,13 @@ def test(param):
     number_dataset = test_manager.len_data
     print("total of number test data is {}".format(number_dataset))
     # 配置日志
-    logger = get_logger(param.train_log_file)
+    logger = get_logger(param.test_log_file)
     # 读取字典
     mapping_dict = get_dict(param.dict_file)
     # 搭建模型
     model = Model(param, mapping_dict)
-    # 初始化参数
-    init = tf.global_variables_initializer()
     # 配置GPU参数
-    gpu_config = tf.ConfigProto(log_device_placement=True, allow_soft_placement=True)
+    gpu_config = tf.ConfigProto()
     with tf.Session(config=gpu_config) as sess:
         logger.info("start testing...")
         start = time.time()
@@ -75,8 +73,8 @@ def test(param):
             logger.info("Cannot find the ckpt files!")
         # 开始评估
         evaluate(sess, param, model, "test", test_manager, logger)
-        logger.info("The best_f1 on test_dataset is {}".format(model.best_test_f1.eval()))
-        logger.info('Time test for {} batch is {} sec\n'.format(param.test_batch_size, time.time() - start))
+        logger.info("The best_f1 on test_dataset is {:.2f}".format(model.best_test_f1.eval()))
+        logger.info('Time test for {:.2f} batch is {:.2f} sec\n'.format(param.test_batch_size, time.time() - start))
 
 
 if __name__ == '__main__':

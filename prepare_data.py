@@ -16,6 +16,7 @@ from cnradical import Radical, RunOption
 from random import shuffle
 import multiprocessing as mp
 from glob import glob
+import numpy as np
 
 train_dir = 'ruijin_round1_train2_20181022'
 
@@ -175,14 +176,16 @@ def mapping(data, threshold=10, is_word=False, sep='sep', is_label=False):
         # 去掉频率小于threshold的值
         data = [x[0] for x in data if x[1] >= threshold]
         # 转化为映射
-        id2item = data
-        item2id = {id2item[i]: i for i in range(len(id2item))}
+        dict_data = data
+        id2item = {i: dict_data[i] for i in range(len(dict_data))}
+        item2id = {dict_data[i]: i for i in range(len(dict_data))}
     elif is_label:
         data = sorted(count.items(), key=lambda x: x[1], reverse=True)
         data = [x[0] for x in data]
         # 转化为映射
-        id2item = data
-        item2id = {id2item[i]: i for i in range(len(id2item))}
+        dict_data = data
+        id2item = {i: dict_data[i] for i in range(len(dict_data))}
+        item2id = {dict_data[i]: i for i in range(len(dict_data))}
     # 如果不是词的话
     else:
         # 句子的长度可能不一致，pad就是用来做填充用的
@@ -190,9 +193,10 @@ def mapping(data, threshold=10, is_word=False, sep='sep', is_label=False):
         data = sorted(count.items(), key=lambda x: x[1], reverse=True)
         data = [x[0] for x in data]
         # 转化为映射
-        id2item = data
-        item2id = {id2item[i]: i for i in range(len(id2item))}
-    return id2item, item2id
+        dict_data = data
+        id2item = {i: dict_data[i] for i in range(len(dict_data))}
+        item2id = {dict_data[i]: i for i in range(len(dict_data))}
+    return dict_data, id2item, item2id
 
 
 def get_dict():
@@ -217,10 +221,14 @@ def get_dict():
     map_dict['label'] = mapping(all_label, is_label=True)
     map_dict['radical'] = mapping(all_radical)
     map_dict['pinyin'] = mapping(all_pinyin)
+    # 为了方便也组合成[word, tag]
+    senc_tag = [[s, t] for s, t in zip(map_dict['word'][0], all_label)]
     with open(f'datas/prepare_data/dict.pkl', 'wb') as f:
         pickle.dump(map_dict, f)
+    with open(f'datas/sentence/train_sentence.pkl', 'wb') as f:
+        pickle.dump(senc_tag, f)
 
 
 if __name__ == '__main__':
-    multi_process(split_text)
+    # multi_process(split_text)
     get_dict()

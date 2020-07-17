@@ -36,6 +36,8 @@ def network(inputs, shapes, num_tags, lstm_dim, dropout_prob, initializer=initia
                 shape=shapes[key],
                 initializer=initializer
             )
+            if key == 'char':
+                char_lookup = lookup
             # char映射操作
             embedding.append(tf.nn.embedding_lookup(lookup, inputs[key]))
     # 在最后一个维度上拼接shape [None, None, char_dim+...+pinyin_dim]
@@ -92,7 +94,7 @@ def network(inputs, shapes, num_tags, lstm_dim, dropout_prob, initializer=initia
         # 映射最后一层不激活
         output = tf.matmul(output, w) + b
     output = tf.reshape(output, [-1, num_time, num_tags])
-    return output, lengths  # batch_size, max_lenthg, num_tags
+    return output, lengths, char_lookup  # batch_size, max_lenthg, num_tags
 
 
 class Model(object):
@@ -129,7 +131,7 @@ class Model(object):
         self.pinyin_inputs = tf.placeholder(dtype=tf.int32, shape=[None, None], name='pinyin_inputs')
         self.targets = tf.placeholder(dtype=tf.int32, shape=[None, None], name='targets')
         # 计算模型输出值，其中包括构建的计算图
-        self.logits, self.lengths = self.get_logits(
+        self.logits, self.lengths, self.char_lookup = self.get_logits(
             self.char_inputs,
             self.bound_inputs,
             self.flag_inputs,
@@ -226,7 +228,7 @@ class Model(object):
 
     def decode(self, logtis, lengths, matrix):
         paths = []
-        small = -1000
+        small = -1000.0
         start = np.asarray([[small] * self.num_tags + [0]])
         for score, length in zip(logtis, lengths):
             # 只取有效长度
@@ -246,7 +248,7 @@ class Model(object):
         matrix = self.trans.eval()
         for batch in batch_manager.iter_batch():
             # 先拿到全部的句子
-            strings = batch[0]
+            str_index = batch[0]
             # 再拿到全部标签
             targets = batch[-1]
             # 获取得分和真实长度
@@ -254,15 +256,15 @@ class Model(object):
             # 获取预测的ID
             paths = self.decode(logtis, lengths, matrix)
             # 组装为[词，标签，预测标签]
-            for i in range(len(strings)):
+            for i in range(len(str_index)):
                 result = []
                 # 第i个批次的长度
                 length = lengths[i]
                 # 获取真实长度字符
-                string = strings[i][:lengths[i]]
+                string = [self.map['word'][0][index] for index in str_index[i][:length]]
                 # 第i句话的真实数据
-                gold = [self.map['label'][0][index] for index in paths[i]]
-                pred = [self.map['word'][0][index] for index in strings[i][:length]]
+                gold = [self.map['label'][0][index] for index in targets[i]]
+                pred = [self.map['label'][0][index] for index in paths[i][:length]]
                 # 循环去加入
                 for char, gold, pred in zip(string, gold, pred):
                     result.append(" ".join([char, gold, pred]))
