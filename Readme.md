@@ -1,5 +1,31 @@
 ### Cner_v2
 
+```xml
+     bert_ner
+      |——bert_ner # 模型与数据文件
+	  |   |——bert_base  # bert的训练代码
+	  |   |——train  # 主要训练代码
+	  |   |——bert_lstm_ner.py  # 训练的主函数代码
+	  |   |——train_helper.py  # 参数预设代码
+	  |   |——chinese_L-12_H-768_A-12 # bert-base的中文预训练模型
+	  |   |——ltp_data_v3.4.0 # pyltp的词性分析、句法分析的模型
+	  |   |——NERdata  # 切分后的数据集
+	  |   |    |——dev.txt  # 验证集
+	  |   |    |——test.txt  # 测试集
+	  |   |    |——train.txt  # 训练集
+	  |   |——output  # 模型输出
+	  |——data_process # 处理训练数据格式
+	  |   |——data_IB  # 原始数据集
+	  |   |——ner_data  # 处理后的ner格式数据集，在“。"、"？"、"！"后面加入空行
+	  |   |——split_data  # 将处理后的数据按7:1:2切分成训练集、验证集、测试集，放入NERdata目录中
+	  |   IB_tag.py  # 第一步
+	  |   ner_data.py  # 第二步
+	  |   split_data.py  # 第三步
+	  |——src # 运行调用的脚本
+	  |   |——bert_ner_predict.py  # bert-ner预测脚本
+	  bert_ner_api.py  # 控制bert-ner训练和测试的主函数脚本
+	  README.md # 说明文件
+	```
 2020-07-02 First commit
 
 **项目简介**：启动对项目Cner_v1的升级，具体如下：
