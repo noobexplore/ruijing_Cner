@@ -94,7 +94,8 @@ def network(inputs, shapes, num_tags, lstm_dim, dropout_prob, initializer=initia
         # 映射最后一层不激活
         output = tf.matmul(output, w) + b
     output = tf.reshape(output, [-1, num_time, num_tags])
-    return output, lengths, char_lookup  # batch_size, max_lenthg, num_tags
+    # batch_size, max_lenthg, num_tags
+    return output, lengths, char_lookup
 
 
 class Model(object):

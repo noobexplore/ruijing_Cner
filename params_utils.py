@@ -17,7 +17,7 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 root = pathlib.Path(os.path.abspath(__file__)).parent
 resultpath = os.path.join(root, "result")
 log_dir = os.path.join(root, "log")
-ckptpath = os.path.join(root, "check_point", "ckpt_2lstm128_0.2drop")
+ckptpath = os.path.join(root, "check_point", "ckpt_bz64_2lstm128_0.5drop")
 embpath = os.path.join(root, "datas", "emb_file", "vec.txt")
 trainpath = os.path.join(root, "datas", "prepare_data", "train.pkl")
 devpath = os.path.join(root, "datas", "prepare_data", "dev.pkl")
@@ -43,15 +43,15 @@ def get_params():
     flags.DEFINE_integer("pinyin_dim", 50, "embedding size for pinyin, 0 if not used")
     # 网络有关参数
     flags.DEFINE_float("clip", 5, "gradient clip")
-    flags.DEFINE_float("dropout", 0.2, "dropout rate")
-    flags.DEFINE_integer("batch_size", 32, "batch size")
+    flags.DEFINE_float("dropout", 0.5, "dropout rate")
+    flags.DEFINE_integer("batch_size", 128, "batch size")
     flags.DEFINE_integer("test_batch_size", 100, "test batch size")
     flags.DEFINE_float("lr", 1e-3, "initial learning rate")
     flags.DEFINE_integer("lstm_dim", 128, "num of hidden units in LSTM")
     # 是否使用预训练模型
     flags.DEFINE_boolean("pre_emb", True, "wither use pre-trained embedding")
     # 训练周期
-    flags.DEFINE_integer("max_epoch", 10, "maximum training epochs")
+    flags.DEFINE_integer("max_epoch", 50, "maximum training epochs")
     # 最大保存步数
     flags.DEFINE_integer("steps_check", 2, "steps per checkpoint")
     # 一些文件路径

@@ -230,5 +230,5 @@ def get_dict():
 
 
 if __name__ == '__main__':
-    # multi_process(split_text)
+    multi_process(split_text)
     get_dict()
