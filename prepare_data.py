@@ -16,7 +16,6 @@ from cnradical import Radical, RunOption
 from random import shuffle
 import multiprocessing as mp
 from glob import glob
-import numpy as np
 
 train_dir = 'ruijin_round1_train2_20181022'
 
