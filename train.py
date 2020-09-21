@@ -17,8 +17,7 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-old_v = tf.logging.get_verbosity()
-tf.logging.set_verbosity(tf.logging.ERROR)
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 def creat_model(session, model_class, ckpt_path, load_vec, param, id_to_char, logger, map_all):

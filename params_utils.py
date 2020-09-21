@@ -17,14 +17,14 @@ tf.logging.set_verbosity(tf.logging.ERROR)
 root = pathlib.Path(os.path.abspath(__file__)).parent
 resultpath = os.path.join(root, "result")
 log_dir = os.path.join(root, "log")
-ckptpath = os.path.join(root, "check_point", "ckpt_bz64_2lstm128_0.5drop")
+ckptpath = os.path.join(root, "check_point", "ckpt_2lstm")
 embpath = os.path.join(root, "datas", "emb_file", "vec.txt")
 trainpath = os.path.join(root, "datas", "prepare_data", "train.pkl")
 devpath = os.path.join(root, "datas", "prepare_data", "dev.pkl")
 testpath = os.path.join(root, "datas", "prepare_data", "test.pkl")
 dictpath = os.path.join(root, "datas", "prepare_data", "dict.pkl")
-train_logpath = os.path.join(root, "log", "train.log")
-test_logpath = os.path.join(root, "log", "test.log")
+train_logpath = os.path.join(log_dir, "train.log")
+test_logpath = os.path.join(log_dir, "test.log")
 sent_tagpath = os.path.join(root, "datas", "sentence", "train_sentence.pkl")
 
 
@@ -47,7 +47,7 @@ def get_params():
     flags.DEFINE_integer("batch_size", 128, "batch size")
     flags.DEFINE_integer("test_batch_size", 100, "test batch size")
     flags.DEFINE_float("lr", 1e-3, "initial learning rate")
-    flags.DEFINE_integer("lstm_dim", 128, "num of hidden units in LSTM")
+    flags.DEFINE_integer("lstm_dim", 100, "num of hidden units in LSTM")
     # 是否使用预训练模型
     flags.DEFINE_boolean("pre_emb", True, "wither use pre-trained embedding")
     # 训练周期
@@ -62,12 +62,12 @@ def get_params():
     flags.DEFINE_string("test_file", testpath, "Path for test data")
     flags.DEFINE_string("dict_file", dictpath, "Path for dict data")
     flags.DEFINE_string("result_path", resultpath, "Path for predict to file")
-    flags.DEFINE_string("log_dir", log_dir, "Path for predict to log")
+    # flags.DEFINE_string("log_dir", log_dir, "Path for predict to log")
     flags.DEFINE_string("train_log_file", train_logpath, "File for train_log")
     flags.DEFINE_string("test_log_file", test_logpath, "File for test_log")
     flags.DEFINE_string("sent_tag_file", sent_tagpath, "File for sent_tag")
     # 再初始化返回
-    FLAGS = tf.app.flags.FLAGS
+    FLAGS = flags.FLAGS
     return FLAGS
 
 

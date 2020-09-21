@@ -229,5 +229,8 @@ def get_dict():
 
 
 if __name__ == '__main__':
-    multi_process(split_text)
-    get_dict()
+    # multi_process(split_text)
+    # get_dict()
+    with open(f'datas/prepare_data/dict.pkl', 'rb') as f:
+        di = pickle.load(f)
+    print(di['word'][2])

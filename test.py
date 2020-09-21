@@ -13,8 +13,7 @@ from data_utils import BatchManager, get_logger, get_dict, test_ner
 import warnings
 
 warnings.filterwarnings("ignore")
-old_v = tf.logging.get_verbosity()
-tf.logging.set_verbosity(tf.logging.ERROR)
+tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
 
 
 # 批量评估函数

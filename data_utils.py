@@ -54,7 +54,7 @@ def get_data_with_windows(name='train'):
             id_data = []
             # 开始转换，拿到每个
             for feature in samples.columns:
-                id_data.append(item2id(list(samples[feature])[start:end], map_dict[feature][1]))
+                id_data.append(item2id(list(samples[feature])[start:end], map_dict[feature][2]))
             result.append(id_data)
         # 去掉换行符
         if len(result[-1][0]) == 1:
@@ -278,6 +278,6 @@ def load_word2vec(emb_path, id_to_word, word_dim, old_weights):
 
 
 if __name__ == '__main__':
-    # get_data_with_windows('train')
-    # get_data_with_windows('test')
-    train_batch = BatchManager(10, name='train')
+    get_data_with_windows('train')
+    get_data_with_windows('test')
+    # train_batch = BatchManager(10, name='train')
