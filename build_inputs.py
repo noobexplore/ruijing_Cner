@@ -93,8 +93,7 @@ def input_from_line_with_feature(line):
     inputs.append(pinyins)
     inputs.append(targets)
     # 开始循环转化为数字索引
-    id_inputs = []
-    id_inputs.append([line])
+    id_inputs = [[line]]
     for i, feature in enumerate(feature_names):
         id_inputs.append([item2id(inputs[i][0], map_dict[feature][2])])
     return id_inputs[0][0], id_inputs[1:]
@@ -102,5 +101,5 @@ def input_from_line_with_feature(line):
 
 if __name__ == '__main__':
     lines = '我是中国人'
-    id_inputs = input_from_line_with_feature(lines)
-    print(id_inputs[0][0])
+    id_input = input_from_line_with_feature(lines)
+    print(id_input[0][0])
