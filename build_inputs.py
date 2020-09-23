@@ -9,6 +9,7 @@ import pickle
 import jieba.posseg as psg
 from cnradical import Radical, RunOption
 
+
 # 全角转半角
 def full_to_half(s):
     n = []
