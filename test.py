@@ -6,11 +6,13 @@
 # @File    : test.py
 # @Software: PyCharm
 import time
-from model import Model
-import tensorflow as tf
-from params_utils import get_params
-from data_utils import BatchManager, get_logger, get_dict, test_ner
 import warnings
+import json as js
+import tensorflow as tf
+from model import Model
+from params_utils import get_params
+from build_inputs import input_from_line_with_feature
+from data_utils import BatchManager, get_logger, get_dict, test_ner, result_to_json
 
 warnings.filterwarnings("ignore")
 tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
@@ -76,6 +78,39 @@ def test(param):
         logger.info('Time test for {:.2f} batch is {:.2f} sec\n'.format(param.test_batch_size, time.time() - start))
 
 
+# 评估单个句子
+def predict_line(param):
+    # 初始化日志对象
+    logger = get_logger(param.test_log_file)
+    tf_config = tf.ConfigProto()
+    # 读取字典
+    mapping_dict = get_dict(param.dict_file)
+    # 根据保存的模型读取模型
+    model = Model(param, mapping_dict)
+    # 开始测试
+    with tf.Session(config=tf_config) as sess:
+        # 首先检查模型是否存在
+        ckpt_path = param.ckpt_path
+        ckpt = tf.train.get_checkpoint_state(ckpt_path)
+        # 看是否存在训练好的模型
+        if ckpt and tf.train.checkpoint_exists(ckpt.model_checkpoint_path):
+            logger.info("Reading model parameters from {}".format(ckpt.model_checkpoint_path))
+            # 如果存在就进行重新加载
+            model.saver.restore(sess, ckpt.model_checkpoint_path)
+        else:
+            logger.info("Cannot find the ckpt files!")
+        while True:
+            # 反复输入句子进行预测
+            line = input("请输入测试句子:")
+            raw_inputs, model_inputs = input_from_line_with_feature(line)
+            tag = model.evaluate_line(sess, model_inputs)
+            result = result_to_json(raw_inputs, tag)
+            result = js.dumps(result, ensure_ascii=False, indent=4, separators=(',', ': '))
+            with open('./result/result.json', 'w', encoding='utf-8') as f:
+                f.write(result)
+            print("预测结果为：{}".format(result))
+
+
 if __name__ == '__main__':
     params = get_params()
-    test(params)
+    predict_line(params)

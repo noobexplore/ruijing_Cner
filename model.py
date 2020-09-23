@@ -272,6 +272,19 @@ class Model(object):
                 results.append(result)
         return results
 
+    # 预测单个句子
+    def evaluate_line(self, sess, inputs):
+        # 只要是测试必须拿到转移矩阵
+        matrix = self.trans.eval(session=sess)
+        # 获取得分和真实长度
+        logtis, lengths = self.run_step(sess, inputs, is_train=False)
+        # 解码最佳路径
+        batch_paths = self.decode(logtis, lengths, matrix)
+        # 单步只是这里不同，直接依次拿出对应词的预测的标签
+        tags = [self.map['label'][0][idx] for idx in batch_paths[0]]
+        # 返回对应的结果
+        return tags
+
     def save_model(self, sess, logger, step):
         checkpoint_path = self.param.ckpt_path
         ckpt_file = os.path.join(checkpoint_path, "ckpt_" + str(step) + ".ckpt")

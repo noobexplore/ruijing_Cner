@@ -55,7 +55,7 @@ def process_text(idx, split_method=None, split_name='train'):
     # 做检查长度是否相等
     assert len([x for s in texts for x in s]) == len(tag_list)
     # 提取词性和词边界特征
-    word_bounds = ['M' for item in tag_list]  # 保存每个词的边界
+    word_bounds = ['M' for _ in tag_list]  # 保存每个词的边界
     word_flags = []  # 保存词性
     for text in texts:
         # 遍历带词性的切分
@@ -154,7 +154,8 @@ def multi_process(split_method=None, train_ratio=0.8):
     results = []
     # 处理训练集
     for idx in train_idx:
-        result = pool.apply_async(process_text, args=(idx, split_method, 'train'))
+        # result = pool.apply_async(process_text, args=(idx, split_method, 'train'))
+        result = process_text(idx, split_method, 'train')
         results.append(result)
     for idx in test_idx:
         result = pool.apply_async(process_text, args=(idx, split_method, 'test'))
@@ -229,8 +230,5 @@ def get_dict():
 
 
 if __name__ == '__main__':
-    # multi_process(split_text)
-    # get_dict()
-    with open(f'datas/prepare_data/dict.pkl', 'rb') as f:
-        di = pickle.load(f)
-    print(di['word'][2])
+    multi_process(split_text)
+    get_dict()

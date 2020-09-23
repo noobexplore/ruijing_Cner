@@ -17,6 +17,24 @@ import numpy as np
 from conlleval import return_report
 import codecs
 
+entities_dict_chinese = {
+    'Level': '等级-Level',
+    'Test_Value': '检测值-Test_Value',
+    'Test': '测试类-Test',
+    'Anatomy': '解剖类-Anatomy',
+    'Amount': '程度-Amount',
+    'Disease': '疾病类-Disease',
+    'Drug': '药物类-Drug',
+    'Treatment': '治疗方法-Treatment',
+    'Reason': '原因-Reason',
+    'Method': '方法类-Method',
+    'Duration': '持续时间-Duration',
+    'Operation': '手术类-Operation',
+    'Frequency': '频率-Frequency',
+    'Symptom': '症状类-Symptom',
+    'SideEff': '副作用-SideEff'
+}
+
 
 def get_dict(path):
     with open(path, 'rb') as f:
@@ -277,7 +295,37 @@ def load_word2vec(emb_path, id_to_word, word_dim, old_weights):
     return new_weights
 
 
+# 将结果写成JSON文件
+def result_to_json(string, tags):
+    item = {"string": string, "entities": []}
+    entity_name = ""
+    entype = ""
+    entity_start = 0
+    idx = 0
+    for char, tag in zip(string, tags):
+        if tag[0] == "S":
+            item["entities"].append(
+                {"word": char, "start": idx, "end": idx + 1, "type": entities_dict_chinese[tag[2:]]})
+        elif tag[0] == "B":
+            entype = entities_dict_chinese[tag[2:]]
+            entity_name += char
+            entity_start = idx
+        elif tag[0] == "I":
+            entity_name += char
+        elif tag[0] == "O" or tag[0] == "S" or tag[0] == "B":
+            if entity_name != "":
+                item["entities"].append({"word": entity_name, "start": entity_start, "end": idx - 1,
+                                         "type": entype})
+                entity_name = ""
+        idx += 1
+    return item
+
+
 if __name__ == '__main__':
     get_data_with_windows('train')
     get_data_with_windows('test')
-    # train_batch = BatchManager(10, name='train')
+    # lines = '我是中国人'
+    # with open(f'datas/prepare_data/dict.pkl', 'rb') as f:
+    #     map_dict = pickle.load(f)
+    # # lines = input_from_line_with_feature(lines)
+    # print(map_dict['bound'][2])
