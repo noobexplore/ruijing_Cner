@@ -132,7 +132,6 @@ def split_text(text):
         split_idx.append(idx + 1)
     # 对其索引排序
     split_idx = list(sorted(set([0, len(text)] + split_idx)))
-
     other_idx = []
     # 处理（一）xxx这种情况
     for i in range(len(split_idx) - 1):

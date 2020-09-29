@@ -9,9 +9,9 @@ import os
 import shutil
 import pandas as pd
 import pickle
+import jieba.posseg as psg
 from collections import Counter
 from data_process import split_text
-import jieba.posseg as psg
 from cnradical import Radical, RunOption
 from random import shuffle
 import multiprocessing as mp
@@ -98,7 +98,6 @@ def process_text(idx, split_method=None, split_name='train'):
     # 存储数据
     num_samples = len(texts)
     num_col = len(data.keys())
-
     dataset = []
     # 获取形如('中', 'B', 'ns', 'O', '丨', 'zhōng'), ('国', 'E', 'ns', 'O', '囗', 'guó')
     for i in range(num_samples):
