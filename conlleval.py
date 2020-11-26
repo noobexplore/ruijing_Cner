@@ -5,15 +5,6 @@
 # @Site    : 
 # @File    : conlleval.py
 # @Software: PyCharm
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# @Time : 2020/6/12 23:25
-# @Author : TheTAO
-# @Site :
-# @File : conlleval.py
-# @Software: PyCharm
-
-
 import sys
 import re
 import codecs
